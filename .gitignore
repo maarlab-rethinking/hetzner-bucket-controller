@@ -1,0 +1,8 @@
+/bin/
+/out/
+/.gen/
+*.test
+*.out
+cover.out
+.env
+kubeconfig

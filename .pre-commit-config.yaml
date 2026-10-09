@@ -1,0 +1,51 @@
+# Every Go hook is `language: system` and calls the Makefile, which installs pinned tools
+# into ./bin once. `language: golang` hooks would build their own toolchain environment
+# in the pre-commit cache, which lives on a tmpfs here and would be rebuilt after every
+# reboot.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Helm templates are Go templates, not YAML — every one of them would fail the parser.
+      - id: check-yaml
+        exclude: ^charts/.*/templates/.*$
+      - id: end-of-file-fixer
+        exclude: ^charts/.*/templates/.*$
+      - id: trailing-whitespace
+        exclude: ^charts/.*/templates/.*$
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        language: system
+        types: [go]
+        entry: gofmt -l -w
+
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        types: [go]
+        pass_filenames: false
+        entry: make --no-print-directory lint
+
+      - id: generated-up-to-date
+        name: generated deepcopy, CRD and RBAC up to date
+        language: system
+        files: ^(api/|internal/|Makefile$)
+        pass_filenames: false
+        entry: .pre-commit-scripts/generated-up-to-date.sh
+
+      - id: helm-lint
+        name: helm lint (charts)
+        language: system
+        files: ^charts/
+        pass_filenames: false
+        entry: .pre-commit-scripts/helm-lint-all.sh
+
+      - id: one-manifest-per-file
+        name: one manifest per file
+        language: system
+        files: ^(charts|config|examples)/.*\.ya?ml$
+        entry: .pre-commit-scripts/one-manifest-per-file.sh

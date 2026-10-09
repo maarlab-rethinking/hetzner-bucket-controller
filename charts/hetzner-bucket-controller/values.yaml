@@ -1,0 +1,57 @@
+image:
+  repository: ghcr.io/maarlab-rethinking/hetzner-bucket-controller
+  tag: "" # defaults to .Chart.appVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Overrides the name of every resource (default: the release name).
+fullnameOverride: ""
+
+# Leader election makes a second replica a hot standby; one replica is enough.
+replicas: 1
+
+controller:
+  # How often each Bucket is re-checked against Hetzner (drift, out-of-band deletion).
+  resyncPeriod: 10m
+  # Retry interval while a Bucket waits on its credentials Secret or a name conflict.
+  waitPeriod: 1m
+  # Upper bound for the S3 calls of one reconcile.
+  operationTimeout: 2m
+  # zap log level: debug, info, error.
+  logLevel: info
+  extraArgs: []
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+priorityClassName: ""
+
+# Install the CRD with the chart (set false if managed separately).
+installCRD: true
+
+# Create the ClusterRole (generated from +kubebuilder:rbac markers), its binding, the
+# namespaced Role for leader election and the Secret-reading Roles below. Set false to
+# bring your own.
+rbac:
+  create: true
+  # Namespaces whose Secrets the controller may `get`: one Role and RoleBinding each.
+  # Secret access is never cluster-wide, so list every namespace that holds Bucket
+  # objects. A Bucket elsewhere reports CredentialsInvalid with reason SecretForbidden.
+  # Empty means the release namespace only.
+  secretNamespaces: []
+
+serviceAccount:
+  create: true
+  # Defaults to the full name.
+  name: ""
+  annotations: {}

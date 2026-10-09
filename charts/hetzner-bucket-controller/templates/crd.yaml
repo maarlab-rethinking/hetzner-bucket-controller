@@ -1,0 +1,413 @@
+{{- /* Generated from api/v1alpha1 by "make manifests"; do not edit. */ -}}
+{{- if .Values.installCRD }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.22.0
+  name: buckets.objectstorage.maarlab.dev
+spec:
+  group: objectstorage.maarlab.dev
+  names:
+    categories:
+    - objectstorage
+    kind: Bucket
+    listKind: BucketList
+    plural: buckets
+    singular: bucket
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: Bucket
+      type: string
+    - jsonPath: .spec.location
+      name: Location
+      type: string
+    - jsonPath: .spec.objectLock.defaultRetention.mode
+      name: Lock
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+      name: Reason
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Bucket is a Hetzner Object Storage bucket reconciled by the controller. Deleting
+          a Bucket never deletes the bucket in Hetzner (orphan semantics).
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BucketSpec is the desired state of a Hetzner Object Storage
+              bucket.
+            properties:
+              credentials:
+                description: |-
+                  Credentials used for every call; their Hetzner project is the one the bucket
+                  is created in.
+                properties:
+                  accessKeyIDKey:
+                    default: access-key
+                    description: Key holding the access key ID.
+                    type: string
+                  name:
+                    description: Name of the Secret, in the same namespace as the
+                      Bucket.
+                    minLength: 1
+                    type: string
+                  secretAccessKeyKey:
+                    default: secret-key
+                    description: Key holding the secret access key.
+                    type: string
+                required:
+                - name
+                type: object
+              endpoint:
+                description: |-
+                  Endpoint of the S3 API. Defaults to https://<location>.your-objectstorage.com.
+                  Only needed for a proxy or an S3-compatible test server.
+                pattern: ^https?://[^/?#]+/?$
+                type: string
+              forcePathStyle:
+                description: |-
+                  ForcePathStyle addresses the bucket as <endpoint>/<bucket> instead of
+                  <bucket>.<endpoint host>. Hetzner requires the default virtual-hosted style;
+                  path style exists for S3-compatible test servers.
+                type: boolean
+              lifecycle:
+                description: |-
+                  Lifecycle configuration to enforce. Omitted means not managed: whatever is
+                  configured on the bucket is left alone.
+                properties:
+                  rules:
+                    description: |-
+                      Rules of the lifecycle configuration. An empty list removes any lifecycle
+                      configuration from the bucket.
+                    items:
+                      description: |-
+                        LifecycleRule is one bucket lifecycle rule. Only the elements Hetzner documents as
+                        supported are modelled; each rule must set at least one action.
+                      properties:
+                        abortIncompleteMultipartUploadDays:
+                          description: |-
+                            AbortIncompleteMultipartUploadDays deletes the parts of multipart uploads that
+                            were not completed this many days after they started.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        expirationDays:
+                          description: |-
+                            ExpirationDays expires the current version of an object this many days after
+                            it was written. On a versioned bucket this adds a delete marker and turns the
+                            object into a noncurrent version; it does not delete data.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        expiredObjectDeleteMarker:
+                          description: |-
+                            ExpiredObjectDeleteMarker removes delete markers that no longer have any
+                            noncurrent version behind them.
+                          type: boolean
+                        id:
+                          description: ID identifies the rule; unique within the bucket.
+                          maxLength: 255
+                          minLength: 1
+                          type: string
+                        noncurrentVersionExpirationDays:
+                          description: |-
+                            NoncurrentVersionExpirationDays permanently deletes noncurrent versions this
+                            many days after they became noncurrent. Versions still under Object Lock
+                            retention are kept until it lapses.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        prefix:
+                          description: |-
+                            Prefix restricts the rule to object keys starting with it. Empty means the
+                            whole bucket.
+                          type: string
+                      required:
+                      - id
+                      type: object
+                      x-kubernetes-validations:
+                      - message: a lifecycle rule needs at least one action
+                        rule: has(self.expirationDays) || (has(self.expiredObjectDeleteMarker)
+                          && self.expiredObjectDeleteMarker) || has(self.noncurrentVersionExpirationDays)
+                          || has(self.abortIncompleteMultipartUploadDays)
+                      - message: expirationDays and expiredObjectDeleteMarker cannot
+                          be combined in one rule (S3 restriction); use two rules
+                        rule: '!(has(self.expirationDays) && has(self.expiredObjectDeleteMarker)
+                          && self.expiredObjectDeleteMarker)'
+                    maxItems: 100
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - id
+                    x-kubernetes-list-type: map
+                type: object
+              location:
+                description: |-
+                  Location of the bucket (for example nbg1, fsn1, hel1). It is also the signing
+                  region and the CreateBucket LocationConstraint: Hetzner rejects a constraint
+                  that differs from the endpoint's location. Immutable.
+                maxLength: 63
+                minLength: 1
+                pattern: ^[a-z0-9-]+$
+                type: string
+                x-kubernetes-validations:
+                - message: location is immutable
+                  rule: self == oldSelf
+              name:
+                description: |-
+                  Name of the bucket. Hetzner bucket names are global across every customer and
+                  location: lowercase letters, digits and '-', 3 to 63 characters, starting with
+                  a letter or digit and not ending with '-'. Immutable.
+                maxLength: 63
+                minLength: 3
+                pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: name is immutable
+                  rule: self == oldSelf
+              objectLock:
+                description: |-
+                  ObjectLock creates the bucket with Object Lock enabled. It can only be chosen
+                  at creation: a pre-existing bucket without Object Lock is reported with the
+                  ObjectLockMissing condition, never fixed in place.
+                properties:
+                  defaultRetention:
+                    description: |-
+                      DefaultRetention for new object versions. When omitted the controller keeps
+                      the bucket without a default retention (and removes one set out of band);
+                      objects are then locked only if the writer asks for it.
+                    properties:
+                      days:
+                        description: Days each new object version is locked for.
+                        format: int32
+                        maximum: 36500
+                        minimum: 1
+                        type: integer
+                      mode:
+                        description: Mode of the default retention.
+                        enum:
+                        - COMPLIANCE
+                        - GOVERNANCE
+                        type: string
+                    required:
+                    - days
+                    - mode
+                    type: object
+                type: object
+              versioning:
+                description: |-
+                  Versioning state to enforce. Omitted means not managed. Buckets with Object
+                  Lock are always versioned.
+                enum:
+                - Enabled
+                - Suspended
+                type: string
+            required:
+            - credentials
+            - location
+            - name
+            type: object
+            x-kubernetes-validations:
+            - message: 'objectLock can only be chosen at creation: Object Lock cannot
+                be added to or removed from an existing bucket'
+              rule: has(self.objectLock) == has(oldSelf.objectLock)
+            - message: a bucket with Object Lock always has versioning enabled
+              rule: '!has(self.objectLock) || !has(self.versioning) || self.versioning
+                == ''Enabled'''
+          status:
+            description: BucketStatus is the observed state of a Bucket.
+            properties:
+              conditions:
+                description: 'Conditions: Ready, CredentialsInvalid, NameTaken, ObjectLockMissing.'
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observed:
+                description: Observed configuration of the bucket.
+                properties:
+                  defaultRetention:
+                    description: DefaultRetention configured on the bucket, if any.
+                    properties:
+                      days:
+                        description: Days each new object version is locked for.
+                        format: int32
+                        maximum: 36500
+                        minimum: 1
+                        type: integer
+                      mode:
+                        description: Mode of the default retention.
+                        enum:
+                        - COMPLIANCE
+                        - GOVERNANCE
+                        type: string
+                    required:
+                    - days
+                    - mode
+                    type: object
+                  endpoint:
+                    description: Endpoint the controller talks to.
+                    type: string
+                  lifecycleRules:
+                    description: |-
+                      LifecycleRules configured on the bucket. Only reported when spec.lifecycle is
+                      managed.
+                    items:
+                      description: |-
+                        LifecycleRule is one bucket lifecycle rule. Only the elements Hetzner documents as
+                        supported are modelled; each rule must set at least one action.
+                      properties:
+                        abortIncompleteMultipartUploadDays:
+                          description: |-
+                            AbortIncompleteMultipartUploadDays deletes the parts of multipart uploads that
+                            were not completed this many days after they started.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        expirationDays:
+                          description: |-
+                            ExpirationDays expires the current version of an object this many days after
+                            it was written. On a versioned bucket this adds a delete marker and turns the
+                            object into a noncurrent version; it does not delete data.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        expiredObjectDeleteMarker:
+                          description: |-
+                            ExpiredObjectDeleteMarker removes delete markers that no longer have any
+                            noncurrent version behind them.
+                          type: boolean
+                        id:
+                          description: ID identifies the rule; unique within the bucket.
+                          maxLength: 255
+                          minLength: 1
+                          type: string
+                        noncurrentVersionExpirationDays:
+                          description: |-
+                            NoncurrentVersionExpirationDays permanently deletes noncurrent versions this
+                            many days after they became noncurrent. Versions still under Object Lock
+                            retention are kept until it lapses.
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        prefix:
+                          description: |-
+                            Prefix restricts the rule to object keys starting with it. Empty means the
+                            whole bucket.
+                          type: string
+                      required:
+                      - id
+                      type: object
+                      x-kubernetes-validations:
+                      - message: a lifecycle rule needs at least one action
+                        rule: has(self.expirationDays) || (has(self.expiredObjectDeleteMarker)
+                          && self.expiredObjectDeleteMarker) || has(self.noncurrentVersionExpirationDays)
+                          || has(self.abortIncompleteMultipartUploadDays)
+                      - message: expirationDays and expiredObjectDeleteMarker cannot
+                          be combined in one rule (S3 restriction); use two rules
+                        rule: '!(has(self.expirationDays) && has(self.expiredObjectDeleteMarker)
+                          && self.expiredObjectDeleteMarker)'
+                    type: array
+                  objectLockEnabled:
+                    description: ObjectLockEnabled reports whether the bucket has
+                      Object Lock.
+                    type: boolean
+                  versioning:
+                    description: Versioning status of the bucket; empty if it was
+                      never enabled.
+                    type: string
+                type: object
+              observedGeneration:
+                description: ObservedGeneration is the spec generation the status
+                  describes.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+{{- end }}

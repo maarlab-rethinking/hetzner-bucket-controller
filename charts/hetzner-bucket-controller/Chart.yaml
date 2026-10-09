@@ -1,0 +1,10 @@
+apiVersion: v2
+name: hetzner-bucket-controller
+description: Declarative Hetzner Object Storage buckets (Object Lock, retention, lifecycle) reconciled from a Bucket custom resource.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/maarlab-rethinking/hetzner-bucket-controller
+sources:
+  - https://github.com/maarlab-rethinking/hetzner-bucket-controller
+keywords: [hetzner, object-storage, s3, bucket, object-lock]

@@ -129,5 +129,10 @@ checks every `Bucket` under `examples/` against the CRD. The integration test us
 `cgr.dev/chainguard/minio:latest` because MinIO no longer publishes community images; set
 `MINIO_IMAGE` to use another.
 
+CI builds with the newest patch release of the Go minor in `GO_VERSION`, not with the
+`go` directive of `go.mod`, which is only the minimum. govulncheck runs on every push and
+also daily, so a vulnerability fixed in a new Go or dependency release turns it red
+without a push; Dependabot proposes the dependency, action and base image bumps weekly.
+
 pre-commit hooks (`pre-commit install`) run gofmt, golangci-lint, the generated-files check, helm lint
 and the one-manifest-per-file rule; all of them are `language: system` and call the `Makefile` tools.

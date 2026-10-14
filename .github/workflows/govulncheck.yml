@@ -1,0 +1,31 @@
+name: govulncheck
+
+# Separate from CI so it also runs on a schedule: a vulnerability published in Go or in a
+# dependency turns this red without anyone pushing, and the daily run against the newest
+# Go patch release is what says a rebuild of the image is due.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.27" # keep in step with ci.yml
+
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+      - run: make vulncheck

@@ -5,7 +5,7 @@ IMG ?= ghcr.io/maarlab-rethinking/hetzner-bucket-controller:dev
 CONTROLLER_TOOLS_VERSION ?= v0.22.0
 GOLANGCI_LINT_VERSION ?= v2.14.0
 SETUP_ENVTEST_VERSION ?= v0.25.2
-GOVULNCHECK_VERSION ?= v1.8.0
+GOVULNCHECK_VERSION ?= v1.9.0
 CRD_REF_DOCS_VERSION ?= v0.3.0
 # Kubernetes version of the envtest control plane (kube-apiserver + etcd).
 ENVTEST_K8S_VERSION ?= 1.37.0

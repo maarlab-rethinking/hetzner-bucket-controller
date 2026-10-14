@@ -1,0 +1,20 @@
+# A bucket without Object Lock: versioning kept on so overwritten objects can be
+# recovered for a week, and abandoned multipart uploads cleaned up. Object Lock cannot be
+# added later; choose it now if the data ever needs to be immutable.
+apiVersion: objectstorage.maarlab.dev/v1alpha1
+kind: Bucket
+metadata:
+  name: artifacts
+  namespace: backup-buckets
+spec:
+  name: maarlab-artifacts-fsn1
+  location: fsn1
+  credentials:
+    name: object-storage-artifacts
+  versioning: Enabled
+  lifecycle:
+    rules:
+      - id: noncurrent-versions
+        noncurrentVersionExpirationDays: 7
+      - id: abort-multipart
+        abortIncompleteMultipartUploadDays: 1

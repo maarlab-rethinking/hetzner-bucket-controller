@@ -1,0 +1,27 @@
+# A backup bucket: every object version immutable for 30 days (COMPLIANCE: not even the
+# Hetzner account owner can shorten it), expired after 35, and its noncurrent versions
+# and delete markers cleaned up so the bucket does not grow forever. The credential in
+# externalsecret.yaml decides which Hetzner project it is created in.
+apiVersion: objectstorage.maarlab.dev/v1alpha1
+kind: Bucket
+metadata:
+  name: management-backups
+  namespace: backup-buckets
+spec:
+  name: maarlab-management-nbg1-backups
+  location: nbg1 # endpoint defaults to https://nbg1.your-objectstorage.com
+  credentials:
+    name: object-storage-management-backups
+  objectLock:
+    defaultRetention:
+      mode: COMPLIANCE
+      days: 30
+  lifecycle:
+    rules:
+      - id: expire-snapshots
+        expirationDays: 35
+        noncurrentVersionExpirationDays: 5
+      # A separate rule: S3 does not allow expirationDays and expiredObjectDeleteMarker
+      # together.
+      - id: drop-delete-markers
+        expiredObjectDeleteMarker: true

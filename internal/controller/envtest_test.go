@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/yaml"
 
 	objectstoragev1alpha1 "github.com/maarlab-rethinking/hetzner-bucket-controller/api/v1alpha1"
 	"github.com/maarlab-rethinking/hetzner-bucket-controller/internal/objectstorage/fakes3"
@@ -189,6 +191,39 @@ func TestCRDValidation(t *testing.T) {
 }
 
 // TestControllerInManager runs the reconciler in a real manager against the fake S3.
+// TestExamplesAreValid keeps examples/ in step with the CRD: every Bucket there must be
+// accepted by the API server as written.
+func TestExamplesAreValid(t *testing.T) {
+	requireEnvtest(t)
+	files, err := filepath.Glob(filepath.Join("..", "..", "examples", "*.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	namespace := createNamespace(t)
+	checked := 0
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), "\nkind: Bucket\n") {
+			continue
+		}
+		var b objectstoragev1alpha1.Bucket
+		if err := yaml.UnmarshalStrict(data, &b); err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		b.Namespace = namespace
+		if err := envClient.Create(context.Background(), &b, client.DryRunAll); err != nil {
+			t.Errorf("%s: %v", f, err)
+		}
+		checked++
+	}
+	if checked == 0 {
+		t.Fatal("no Bucket found in examples/")
+	}
+}
+
 func TestControllerInManager(t *testing.T) {
 	requireEnvtest(t)
 	ctx, cancel := context.WithCancel(context.Background())

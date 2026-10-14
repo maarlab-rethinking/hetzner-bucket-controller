@@ -52,13 +52,13 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: regenerate deepcopy + CRD + RBAC
-        run: make generate manifests
+      - name: regenerate deepcopy + CRD + RBAC + API reference
+        run: make generate manifests api-docs
       - name: check for drift
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git status --porcelain
-            echo "::error::Generated files are stale. Run 'make generate manifests' and commit the result."
+            echo "::error::Generated files are stale. Run 'make generate manifests api-docs' and commit the result."
             exit 1
           fi
 

@@ -31,7 +31,7 @@ repos:
         entry: make --no-print-directory lint
 
       - id: generated-up-to-date
-        name: generated deepcopy, CRD and RBAC up to date
+        name: generated deepcopy, CRD, RBAC and API reference up to date
         language: system
         files: ^(api/|internal/|Makefile$)
         pass_filenames: false

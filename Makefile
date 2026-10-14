@@ -6,6 +6,7 @@ CONTROLLER_TOOLS_VERSION ?= v0.22.0
 GOLANGCI_LINT_VERSION ?= v2.14.0
 SETUP_ENVTEST_VERSION ?= v0.25.2
 GOVULNCHECK_VERSION ?= v1.8.0
+CRD_REF_DOCS_VERSION ?= v0.3.0
 # Kubernetes version of the envtest control plane (kube-apiserver + etcd).
 ENVTEST_K8S_VERSION ?= 1.37.0
 
@@ -14,6 +15,7 @@ CONTROLLER_GEN := $(LOCALBIN)/controller-gen-$(CONTROLLER_TOOLS_VERSION)
 GOLANGCI_LINT := $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 SETUP_ENVTEST := $(LOCALBIN)/setup-envtest-$(SETUP_ENVTEST_VERSION)
 GOVULNCHECK := $(LOCALBIN)/govulncheck-$(GOVULNCHECK_VERSION)
+CRD_REF_DOCS := $(LOCALBIN)/crd-ref-docs-$(CRD_REF_DOCS_VERSION)
 
 CHART := charts/hetzner-bucket-controller
 GENDIR := .gen
@@ -64,6 +66,10 @@ manifests: $(CONTROLLER_GEN) ## CRD + RBAC ClusterRole -> chart templates (gener
 	  echo '{{- end }}'; \
 	} > $(CHART)/templates/clusterrole.yaml
 	@rm -rf $(GENDIR)
+
+.PHONY: api-docs
+api-docs: $(CRD_REF_DOCS) ## docs/api.md from the Go types (generated; do not hand-edit)
+	$(CRD_REF_DOCS) --source-path=./api/v1alpha1 --config=hack/crd-ref-docs.yaml --renderer=markdown --output-path=docs/api.md
 
 .PHONY: fmt
 fmt:
@@ -128,6 +134,9 @@ $(SETUP_ENVTEST): | $(LOCALBIN)
 
 $(GOVULNCHECK): | $(LOCALBIN)
 	$(call go-install-tool,$@,golang.org/x/vuln/cmd/govulncheck,$(GOVULNCHECK_VERSION))
+
+$(CRD_REF_DOCS): | $(LOCALBIN)
+	$(call go-install-tool,$@,github.com/elastic/crd-ref-docs,$(CRD_REF_DOCS_VERSION))
 
 # go-install-tool installs $(2)@$(3) into ./bin and renames it to $(1).
 define go-install-tool

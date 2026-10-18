@@ -2,7 +2,7 @@ IMG ?= ghcr.io/maarlab-rethinking/hetzner-bucket-controller:dev
 
 # Tool versions. Binaries are installed once into ./bin, suffixed with their version, so
 # a bump re-installs and nothing is rebuilt on every invocation.
-CONTROLLER_TOOLS_VERSION ?= v0.22.0
+CONTROLLER_TOOLS_VERSION ?= v0.23.0
 GOLANGCI_LINT_VERSION ?= v2.14.0
 SETUP_ENVTEST_VERSION ?= v0.25.2
 GOVULNCHECK_VERSION ?= v1.9.0

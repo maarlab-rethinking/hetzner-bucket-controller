@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write # create the GitHub Release
   packages: write # push the image to GHCR
+  id-token: write # keyless signing with cosign, and SLSA provenance
 
 env:
   IMAGE: ghcr.io/maarlab-rethinking/hetzner-bucket-controller
@@ -17,6 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # The chart is consumed from this tag, and its appVersion is the image tag: a tag the chart
+      # is not at would deploy another image than the one built here. Fail before publishing.
+      - name: Check the chart is at the tag's version
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          f=charts/hetzner-bucket-controller/Chart.yaml
+          grep -qx "version: $v" "$f" && grep -qx "appVersion: \"$v\"" "$f" || {
+            echo "::error file=$f::version and appVersion must be $v for tag $GITHUB_REF_NAME"
+            exit 1
+          }
       - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
       - name: Log in to GHCR
@@ -34,6 +45,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
       - name: Build & push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -41,6 +53,15 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # An SBOM and SLSA provenance attached to the image, so a consumer
+          # can see what went in and where it was built.
+          sbom: true
+          provenance: mode=max
+      - uses: sigstore/cosign-installer@v4
+      - name: Sign the image (keyless, Sigstore)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
       - name: GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -50,6 +71,14 @@ jobs:
 
             ```
             ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+            ```
+
+            Signed with Sigstore (keyless). Verify with:
+
+            ```
+            cosign verify ${{ env.IMAGE }}@${{ steps.build.outputs.digest }} \
+              --certificate-identity-regexp 'https://github.com/maarlab-rethinking/hetzner-bucket-controller/' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
             ```
 
             Helm chart: `charts/hetzner-bucket-controller` at this tag.

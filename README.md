@@ -115,6 +115,8 @@ by the API server rather than discovered on the first reconcile:
 
 ## Development
 
+How to propose a change, and how it is checked and merged: [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ```console
 make test               # unit tests (fake S3) + envtest (kube-apiserver + etcd)
 make test-integration   # S3 client and reconciler against MinIO (Docker needed)

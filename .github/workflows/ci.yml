@@ -106,3 +106,38 @@ jobs:
           context: .
           push: false
           tags: hetzner-bucket-controller:ci
+
+  commits:
+    name: commits are signed off, conventional and final
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Pull requests are merged with a merge commit, so these commits reach main as
+      # they are: nothing squashes a fixup or rewrites a message on the way in.
+      # Dependabot's own commits carry no Signed-off-by; the certificate is about human
+      # contributions. Exempting by commit author rather than by workflow actor keeps
+      # the check on the human commits pushed onto a Dependabot branch.
+      - name: check every commit of the pull request
+        env:
+          RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+        run: |
+          dependabot='49699333+dependabot[bot]@users.noreply.github.com'
+          conventional='^(feat|fix|perf|refactor|docs|test|build|ci|chore)(\([a-z0-9./_-]+\))?!?: [^ ]'
+          fail=0
+          commits=$(git rev-list --no-merges "$RANGE")
+          for c in $commits; do
+            subject=$(git log -1 --format=%s "$c")
+            if [[ $subject =~ ^(fixup|squash|amend)! ]]; then
+              echo "::error::${c:0:12} \"$subject\": fold it into the commit it corrects"; fail=1
+            elif ! [[ $subject =~ $conventional || $subject =~ ^Revert\ \" ]]; then
+              echo "::error::${c:0:12} \"$subject\" is not a Conventional Commits header"; fail=1
+            fi
+            if [ "$(git log -1 --format=%ae "$c")" != "$dependabot" ] &&
+              ! git log -1 --format=%B "$c" | grep -q '^Signed-off-by: '; then
+              echo "::error::${c:0:12} \"$subject\" has no Signed-off-by trailer"; fail=1
+            fi
+          done
+          exit $fail

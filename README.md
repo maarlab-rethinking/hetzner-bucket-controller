@@ -33,6 +33,7 @@ Neither ACK, Crossplane nor COSI works against Hetzner's reduced S3 API;
 - [Chart README](charts/hetzner-bucket-controller/README.md): RBAC and every value.
 - [Examples](examples/): a backup bucket with Object Lock and its credential, a plain versioned
   bucket.
+- [Changelog](CHANGELOG.md) and [releasing](RELEASE.md).
 
 ## Install
 
